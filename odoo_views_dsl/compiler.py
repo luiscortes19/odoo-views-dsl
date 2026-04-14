@@ -181,7 +181,7 @@ def _compile_menus(menu_items: list[dict]) -> list:
             elements.append(emit_menuitem({
                 'id': mid,
                 'name': name,
-                'web_icon': item.get('icon'),
+                'web_icon': item.get('web_icon'),
                 'sequence': item.get('sequence'),
             }))
 

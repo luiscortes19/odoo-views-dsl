@@ -18,7 +18,7 @@ class _MenuRegistry:
         _registry.menus.append({
             'type': 'root',
             'name': name,
-            'icon': icon,
+            'web_icon': icon,
             'sequence': sequence,
         })
 

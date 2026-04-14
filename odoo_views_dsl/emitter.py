@@ -126,6 +126,16 @@ def emit_view(view_def: dict, children: list[Node]) -> ET.Element:
             if view_def.get('editable'):
                 root_attrs['editable'] = view_def['editable']
 
+        # Pass-through extra root-element attributes (create, edit,
+        # default_order, sample, multi_edit, etc.)
+        _RESERVED = {
+            'id', 'type', 'subtype', 'fn', 'model', 'string', 'domain',
+            'decorations', 'editable', 'inherit', 'priority',
+        }
+        for key, val in view_def.items():
+            if key not in _RESERVED and key not in root_attrs and val is not None:
+                root_attrs[key] = str(val)
+
         root_el = ET.SubElement(arch, view_type, root_attrs)
         for child in children:
             root_el.append(_node_to_element(child))

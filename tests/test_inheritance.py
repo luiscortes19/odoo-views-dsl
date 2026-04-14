@@ -20,6 +20,7 @@ class TestFormExtend:
         @view.form.extend(
             id='sale_form_ext',
             inherit='sale.view_order_form',
+            model='sale.order',
         )
         def extend_sale(v):
             with v.inside('header'):
@@ -52,6 +53,7 @@ class TestFormExtend:
         @view.form.extend(
             id='order_form_ext',
             inherit='sale.view_order_form',
+            model='sale.order',
         )
         def extend_order(v):
             v.after('partner_id',
@@ -74,6 +76,7 @@ class TestFormExtend:
         @view.form.extend(
             id='before_ext',
             inherit='sale.view_order_form',
+            model='sale.order',
         )
         def extend_before(v):
             v.before('partner_id',
@@ -95,6 +98,7 @@ class TestFormExtend:
         @view.form.extend(
             id='tab_ext',
             inherit='sale.view_order_form',
+            model='sale.order',
         )
         def extend_with_tab(v):
             with v.tab('Warehouse', visible='order_id'):
@@ -122,6 +126,7 @@ class TestFormExtend:
         @view.form.extend(
             id='hdr_ext',
             inherit='sale.view_order_form',
+            model='sale.order',
         )
         def extend_header(v):
             with v.header():
@@ -139,6 +144,7 @@ class TestFormExtend:
         @view.form.extend(
             id='bbox_ext',
             inherit='sale.view_order_form',
+            model='sale.order',
         )
         def extend_bbox(v):
             with v.inside('div[@name="button_box"]'):
@@ -160,6 +166,7 @@ class TestFormExtend:
         @view.form.extend(
             id='sale_order_form_warehouse',
             inherit='sale.view_order_form',
+            model='sale.order',
         )
         def extend_sale_order(v):
             # Header button
@@ -206,13 +213,14 @@ class TestFormExtend:
         assert len(hidden) == 3
         assert all(f.get('invisible') == '1' for f in hidden)
 
-    def test_no_model_required(self):
-        """Inherited views don't require model — Odoo infers it from parent."""
+    def test_model_is_emitted(self):
+        """Inherited views include <field name='model'> in the record."""
         @view.form.extend(
-            id='no_model_ext',
+            id='model_ext',
             inherit='sale.view_order_form',
+            model='sale.order',
         )
-        def extend_no_model(v):
+        def extend_with_model(v):
             v.after('partner_id',
                     v.make_field('custom', 'Custom'))
 
@@ -220,9 +228,9 @@ class TestFormExtend:
         root = _parse(xml)
 
         rec = root.find('record')
-        # model field should be absent
         model_field = rec.find("field[@name='model']")
-        assert model_field is None
+        assert model_field is not None
+        assert model_field.text == 'sale.order'
 
 
 # ─── List Inheritance ────────────────────────────────────────────────
@@ -234,6 +242,7 @@ class TestListExtend:
         @view.list.extend(
             id='partner_list_ext',
             inherit='base.partner_list',
+            model='res.partner',
         )
         def extend_list(v):
             v.after('name', v.make_field('custom', 'Custom'))
@@ -264,6 +273,7 @@ class TestListExtend:
         @view.list.extend(
             id='list_before_ext',
             inherit='base.partner_list',
+            model='res.partner',
         )
         def extend_before(v):
             v.before('email', v.make_field('phone', 'Phone'))
@@ -280,6 +290,7 @@ class TestListExtend:
         @view.list.extend(
             id='list_hdr_ext',
             inherit='base.partner_list',
+            model='res.partner',
         )
         def extend_header(v):
             v.header_button('action_batch', 'Batch Update', style='primary')
@@ -294,13 +305,14 @@ class TestListExtend:
         btn = xpath.find('button')
         assert btn.get('name') == 'action_batch'
 
-    def test_list_extend_no_model(self):
-        """Inherited list views don't require model."""
+    def test_list_extend_model_emitted(self):
+        """Inherited list views include model in the record."""
         @view.list.extend(
-            id='no_model_list',
+            id='model_list_ext',
             inherit='base.partner_list',
+            model='res.partner',
         )
-        def extend_no_model(v):
+        def extend_with_model(v):
             v.after('email', v.make_field('phone', 'Phone'))
 
         xml = compile_registry()
@@ -308,13 +320,15 @@ class TestListExtend:
 
         rec = root.find('record')
         model_field = rec.find("field[@name='model']")
-        assert model_field is None
+        assert model_field is not None
+        assert model_field.text == 'res.partner'
 
     def test_list_extend_inside_context(self):
         """inside() context manager on list builder."""
         @view.list.extend(
             id='inside_list_ext',
             inherit='base.partner_list',
+            model='res.partner',
         )
         def extend_inside(v):
             with v.inside('header'):

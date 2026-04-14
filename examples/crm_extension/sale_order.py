@@ -5,6 +5,7 @@ from odoo_views_dsl import view
 @view.form.extend(
     id='sale_order_form_warehouse',
     inherit='sale.view_order_form',
+    model='sale.order',
 )
 def extend_sale_order(v):
     # Header button

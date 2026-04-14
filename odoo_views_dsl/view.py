@@ -24,16 +24,19 @@ class _ListDecorator:
             return fn
         return decorator
 
-    def extend(self, *, id: str, inherit: str,
-               model: str | None = None,
+    def extend(self, *, id: str, inherit: str, model: str,
                priority: int | None = None, **kwargs):
         """Decorator for inherited list views.
+
+        ``model`` is **required** — Odoo needs it to validate
+        the view's fields against the ORM model.
 
         Example::
 
             @view.list.extend(
                 id='partner_list_custom',
                 inherit='base.view_partner_list',
+                model='res.partner',
             )
             def extend_partner_list(v):
                 v.after('name', v.make_field('custom_field', 'Custom'))
@@ -68,16 +71,19 @@ class _FormDecorator:
             return fn
         return decorator
 
-    def extend(self, *, id: str, inherit: str,
-               model: str | None = None,
+    def extend(self, *, id: str, inherit: str, model: str,
                priority: int | None = None, **kwargs):
         """Decorator for inherited form views.
+
+        ``model`` is **required** — Odoo needs it to validate
+        the view's fields against the ORM model.
 
         Example::
 
             @view.form.extend(
                 id='sale_order_form_custom',
                 inherit='sale.view_order_form',
+                model='sale.order',
             )
             def extend_sale_order(v):
                 with v.inside('header'):

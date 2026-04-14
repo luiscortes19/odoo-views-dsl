@@ -193,6 +193,7 @@ DSL:
 @view.form.extend(
     id='my_form_extend',
     inherit='sale.view_order_form',
+    model='sale.order',          # ⚠️ REQUIRED — Odoo crashes without this
 )
 def extend_sale_order(v):
     with v.inside('header'):
@@ -214,6 +215,7 @@ def extend_sale_order(v):
 @view.list.extend(
     id='partner_list_custom',
     inherit='base.view_partner_list',
+    model='res.partner',         # ⚠️ REQUIRED
 )
 def extend_partner_list(v):
     v.after('name', v.make_field('custom_field', 'Custom'))
@@ -357,6 +359,12 @@ def my_settings(s):
 | `<xpath expr="//field[@name='x']" position="before">` | `v.before('x', ...)` |
 
 ## Gotchas
+
+0. **⚠️ `model=` is REQUIRED on `extend()`**: Every `@view.form.extend` and
+   `@view.list.extend` call MUST include `model='the.model.name'`. Without it,
+   Odoo crashes with `Model not found: False` during module installation.
+   The `model` parameter is technically optional in the DSL (for flexibility),
+   but Odoo itself requires `<field name="model">` on inherited view records.
 
 1. **`visible` vs `invisible`**: The DSL uses `visible=` which auto-negates to
    Odoo's `invisible=`. If you need the raw `invisible=` expression, pass

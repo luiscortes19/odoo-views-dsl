@@ -1,8 +1,9 @@
 """Builder classes — the objects passed to decorated DSL functions.
 
-ListViewBuilder  → the ``v`` in ``@view.list``
-FormViewBuilder  → the ``v`` in ``@view.form``
-ActionBuilder    → the ``a`` in ``@action.window``
+ListViewBuilder    → the ``v`` in ``@view.list``
+FormViewBuilder    → the ``v`` in ``@view.form``
+ActionBuilder      → the ``a`` in ``@action.window``
+SettingsBuilder    → the ``s`` in ``@settings.page``
 """
 from __future__ import annotations
 
@@ -451,3 +452,234 @@ class ActionBuilder:
         if self._views:
             return ','.join(v['type'] for v in self._views)
         return 'list,form'
+
+
+# ─── Settings ────────────────────────────────────────────────────────
+
+class SettingsBuilder:
+    """Builder for ``res.config.settings`` pages.
+
+    Passed as ``s`` to ``@settings.page`` functions.  Generates the
+    structured ``<app>/<block>/<setting>`` layout with correct
+    CSS classes for the Odoo settings UI.
+
+    Example::
+
+        @settings.page(id='my_settings', module='my_mod', string='My App')
+        def my_settings(s):
+            with s.block('Connection'):
+                with s.setting('API Key', help='Enter your API key.'):
+                    s.field('api_key', password=True)
+    """
+
+    def __init__(self):
+        self._app_children: list[Node] = []
+        self._stack: list[Node] = []
+
+    @property
+    def _target(self) -> list[Node]:
+        """Current insertion target."""
+        return self._stack[-1].children if self._stack else self._app_children
+
+    # ── Containers ──
+
+    @contextmanager
+    def block(self, title: str):
+        """``<block title="...">`` — groups related settings."""
+        node = Node('block', {'title': title})
+        self._target.append(node)
+        self._stack.append(node)
+        try:
+            yield
+        finally:
+            self._stack.pop()
+
+    @contextmanager
+    def setting(self, string: str, *, help: str = ''):
+        """``<setting string="..." help="...">`` — single setting entry.
+
+        Inside this context, use ``field()``, ``checkbox()``, or
+        ``button()`` to define the setting's content.
+        """
+        attrs: dict[str, str] = {'string': string}
+        if help:
+            attrs['help'] = help
+        node = Node('setting', attrs)
+        self._target.append(node)
+        self._stack.append(node)
+        try:
+            yield
+        finally:
+            self._stack.pop()
+
+    # ── Fields ──
+
+    def field(self, name: str, *,
+              widget: str | None = None,
+              readonly: bool = False,
+              password: bool = False,
+              placeholder: str | None = None,
+              visible: str | None = None,
+              suffix: str | None = None,
+              **kwargs):
+        """Add a labeled field row.
+
+        Generates the standard Odoo settings row pattern::
+
+            <div class="row mt16">
+                <label for="name" class="col-lg-3 o_light_label"/>
+                <field name="name" class="col-lg-9"/>
+            </div>
+
+        Parameters
+        ----------
+        visible : str, optional
+            Wraps the field in ``<div invisible="not (expr)">``.
+        suffix : str, optional
+            Adds a text span after the field (e.g., "hours between syncs").
+            Shrinks the field column to ``col-lg-2``.
+        """
+        if visible:
+            # Conditional field — wrapped in visibility div, outside content-group
+            wrapper = Node('div', {'invisible': f'not {visible}'})
+            row = self._make_field_row(name, 'mt8',
+                                       widget=widget, readonly=readonly,
+                                       password=password, placeholder=placeholder,
+                                       suffix=suffix, **kwargs)
+            wrapper.children.append(row)
+            self._target.append(wrapper)
+        else:
+            # Standard field — inside content-group
+            cg = self._get_content_group()
+            mt = 'mt16' if len(cg.children) == 0 else 'mt8'
+            row = self._make_field_row(name, mt,
+                                       widget=widget, readonly=readonly,
+                                       password=password, placeholder=placeholder,
+                                       suffix=suffix, **kwargs)
+            cg.children.append(row)
+
+    def checkbox(self, name: str):
+        """Add a checkbox toggle (field + label inline).
+
+        Generates::
+
+            <div class="mt8">
+                <field name="..."/>
+                <label for="..."/>
+            </div>
+        """
+        div = Node('div', {'class': 'mt8'})
+        div.children.append(Node('field', {'name': name}))
+        div.children.append(Node('label', {'for': name}))
+        self._target.append(div)
+
+    def button(self, method: str, string: str, *,
+               style: str | None = None,
+               icon: str | None = None, **kwargs):
+        """Add a button.
+
+        If inside a content-group (after ``field()`` calls), adds the
+        button in a labeled-row layout.  Otherwise, adds it directly.
+        """
+        btn_attrs: dict[str, str] = {
+            'name': method, 'type': 'object', 'string': string,
+        }
+        if style:
+            btn_attrs['class'] = f'btn-{style}'
+        if icon:
+            btn_attrs['icon'] = icon
+        for k, v in kwargs.items():
+            btn_attrs[k] = str(v)
+        btn = Node('button', btn_attrs)
+
+        # Check if there's a content-group in the current target
+        has_cg = any(
+            c.tag == 'div' and c.attrs.get('class') == 'content-group'
+            for c in self._target
+        )
+
+        if has_cg:
+            # Button row inside content-group (empty label + button cell)
+            cg = self._get_content_group()
+            mt = 'mt16' if len(cg.children) == 0 else 'mt8'
+            row = Node('div', {'class': f'row {mt}'})
+            row.children.append(Node('div', {'class': 'col-lg-3'}))
+            cell = Node('div', {'class': 'col-lg-9'})
+            cell.children.append(btn)
+            row.children.append(cell)
+            cg.children.append(row)
+        else:
+            # Standalone button div
+            div = Node('div', {'class': 'mt8'})
+            div.children.append(btn)
+            self._target.append(div)
+
+    # ── Internal helpers ──
+
+    def _get_content_group(self) -> Node:
+        """Get or create the ``<div class="content-group">`` in the current setting."""
+        for child in self._target:
+            if child.tag == 'div' and child.attrs.get('class') == 'content-group':
+                return child
+        cg = Node('div', {'class': 'content-group'})
+        self._target.append(cg)
+        return cg
+
+    def _make_field_row(self, name: str, mt: str, *,
+                        widget: str | None = None,
+                        readonly: bool = False,
+                        password: bool = False,
+                        placeholder: str | None = None,
+                        suffix: str | None = None,
+                        **kwargs) -> Node:
+        """Build a ``<div class="row mt...">`` with label + field."""
+        row = Node('div', {'class': f'row {mt}'})
+
+        # Label column
+        row.children.append(Node('label', {
+            'for': name, 'class': 'col-lg-3 o_light_label',
+        }))
+
+        # Field column
+        field_attrs: dict[str, str] = {'name': name}
+        field_attrs['class'] = 'col-lg-2' if suffix else 'col-lg-9'
+        if widget:
+            field_attrs['widget'] = widget
+        if readonly:
+            field_attrs['readonly'] = '1'
+        if password:
+            field_attrs['password'] = 'True'
+        if placeholder:
+            field_attrs['placeholder'] = placeholder
+        for k, v in kwargs.items():
+            if isinstance(v, bool):
+                field_attrs[k] = '1' if v else '0'
+            else:
+                field_attrs[k] = str(v)
+        row.children.append(Node('field', field_attrs))
+
+        # Suffix text
+        if suffix:
+            row.children.append(Node('span', {
+                'class': 'col-lg-7 text-muted',
+            }, text=suffix))
+
+        return row
+
+    # ── Build ──
+
+    def build(self, module_name: str, app_string: str) -> list[Node]:
+        """Produce the node tree for ``emit_view``.
+
+        Returns a list containing a single ``_xpath_inside`` node wrapping
+        the ``<app>`` element with all blocks and settings.
+        """
+        app = Node('app', {
+            'data-string': app_string,
+            'string': app_string,
+            'name': module_name,
+        }, children=self._app_children)
+
+        wrapper = Node('_xpath_inside', {'target': 'form'})
+        wrapper.children.append(app)
+        return [wrapper]

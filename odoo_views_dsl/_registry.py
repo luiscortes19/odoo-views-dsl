@@ -8,6 +8,7 @@ from __future__ import annotations
 views: list[dict] = []
 actions: list[dict] = []
 menus: list[dict] = []
+settings: list[dict] = []
 
 
 def clear():
@@ -15,3 +16,4 @@ def clear():
     views.clear()
     actions.clear()
     menus.clear()
+    settings.clear()

@@ -17,7 +17,7 @@ import warnings
 from pathlib import Path
 
 from . import _registry
-from .builders import ActionBuilder, FormViewBuilder, ListViewBuilder
+from .builders import ActionBuilder, FormViewBuilder, ListViewBuilder, SettingsBuilder
 from .emitter import emit_action, emit_document, emit_menuitem, emit_view
 
 
@@ -55,6 +55,19 @@ def compile_registry() -> str:
 
     # ── Menus ──
     elements.extend(_compile_menus(_registry.menus))
+
+    # ── Settings pages ──
+    for sdef in _registry.settings:
+        builder = SettingsBuilder()
+        sdef['fn'](builder)
+        children = builder.build(sdef['module'], sdef['string'])
+        vdef = {
+            'id': sdef['id'],
+            'type': 'form',
+            'model': 'res.config.settings',
+            'inherit': 'base.res_config_settings_view_form',
+        }
+        elements.append(emit_view(vdef, children))
 
     if not elements:
         return ''

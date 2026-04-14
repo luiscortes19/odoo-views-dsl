@@ -1,0 +1,82 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="warehouse_product_dashboard_list" model="ir.ui.view">
+        <field name="name">warehouse.product.dashboard.list</field>
+        <field name="model">product.template</field>
+        <field name="arch" type="xml">
+            <list string="Warehouse Products" decoration-success="readiness == 'ready'" decoration-warning="readiness == 'incomplete'" decoration-danger="readiness == 'no_price'">
+                <header>
+                    <button name="action_refresh_all" type="object" string="⟳ Refresh All" class="btn-primary" />
+                </header>
+                <field name="default_code" string="SKU" />
+                <field name="name" string="Product" />
+                <field name="readiness" widget="badge" string="Status" decoration-success="readiness == 'ready'" decoration-warning="readiness == 'incomplete'" decoration-danger="readiness == 'no_price'" />
+                <field name="reported_qty" string="Actual" />
+                <field name="expected_qty" string="Expected" />
+                <field name="qty_discrepancy" string="Discrepancy" decoration-danger="qty_discrepancy != 0" />
+                <field name="last_sync" string="Last Sync" />
+            </list>
+        </field>
+    </record>
+    <record id="warehouse_product_form" model="ir.ui.view">
+        <field name="name">warehouse.product.form</field>
+        <field name="model">product.template</field>
+        <field name="arch" type="xml">
+            <form string="Warehouse Product">
+                <header>
+                    <button name="action_refresh" type="object" string="🔄 Refresh from Warehouse" class="btn-primary" />
+                </header>
+                <sheet>
+                    <group>
+                        <group string="General">
+                            <field name="default_code" />
+                            <field name="name" />
+                        </group>
+                        <group string="Status">
+                            <field name="readiness" widget="badge" decoration-success="readiness == 'ready'" decoration-danger="readiness == 'incomplete'" />
+                            <field name="readiness_notes" invisible="not (readiness != 'ready')" />
+                        </group>
+                    </group>
+                    <notebook>
+                        <page string="Inventory">
+                            <group string="Quantities">
+                                <field name="reported_qty" />
+                                <field name="expected_qty" />
+                                <field name="qty_discrepancy" decoration-danger="qty_discrepancy != 0" />
+                            </group>
+                        </page>
+                        <page string="Sync">
+                            <field name="last_sync" />
+                            <field name="sync_log" nolabel="1" widget="text" />
+                        </page>
+                    </notebook>
+                </sheet>
+            </form>
+        </field>
+    </record>
+    <record id="action_warehouse_product_dashboard_search" model="ir.ui.view">
+        <field name="name">action.warehouse.product.dashboard.search</field>
+        <field name="model">product.template</field>
+        <field name="arch" type="xml">
+            <search>
+                <filter name="ready" string="Ready" domain="[('readiness', '=', 'ready')]" />
+                <filter name="incomplete" string="Incomplete" domain="[('readiness', '=', 'incomplete')]" />
+            </search>
+        </field>
+    </record>
+    <record id="action_warehouse_product_dashboard" model="ir.actions.act_window">
+        <field name="name">Warehouse Products</field>
+        <field name="res_model">product.template</field>
+        <field name="view_mode">list,form</field>
+        <field name="domain">[('is_warehouse', '=', True)]</field>
+        <field name="context">{'search_default_ready': 1}</field>
+        <field name="search_view_id" ref="action_warehouse_product_dashboard_search" />
+    </record>
+    <menuitem id="menu_warehouse_root" name="Warehouse" sequence="90" web_icon="warehouse_module,static/description/icon.png" />
+    <menuitem id="menu_warehouse_catalog" name="Catalog" parent="menu_warehouse_root" sequence="10" />
+    <menuitem id="menu_warehouse_catalog_products" name="Products" parent="menu_warehouse_catalog" action="action_warehouse_product_dashboard" sequence="10" />
+    <menuitem id="menu_warehouse_operations" name="Operations" parent="menu_warehouse_root" sequence="20" />
+    <menuitem id="menu_warehouse_operations_sync_logs" name="Sync Logs" parent="menu_warehouse_operations" action="action_warehouse_sync_log" sequence="10" />
+    <menuitem id="menu_warehouse_configuration" name="Configuration" parent="menu_warehouse_root" sequence="30" />
+    <menuitem id="menu_warehouse_configuration_settings" name="Settings" parent="menu_warehouse_configuration" action="action_warehouse_config" sequence="10" />
+</odoo>

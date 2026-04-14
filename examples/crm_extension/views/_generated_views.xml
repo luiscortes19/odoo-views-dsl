@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="sale_order_form_warehouse" model="ir.ui.view">
+        <field name="name">sale.order.form.warehouse</field>
+        <field name="inherit_id" ref="sale.view_order_form" />
+        <field name="arch" type="xml">
+            <xpath expr="//header" position="inside">
+                <button name="action_send_to_warehouse" type="object" string="Send to Warehouse" class="btn-primary" invisible="not (has_products and not order_id and state in ('sale', 'done'))" confirm="Submit this order for fulfillment?" />
+            </xpath>
+            <xpath expr="//div[@name=&quot;button_box&quot;]" position="inside">
+                <button name="action_view_bill" type="object" class="oe_stat_button" icon="fa-money" invisible="not (vendor_bill_id)">
+                    <span class="o_stat_text">Vendor Bill</span>
+                </button>
+            </xpath>
+            <xpath expr="//field[@name='partner_id']" position="after">
+                <field name="has_products" invisible="1" />
+                <field name="order_id" invisible="1" />
+                <field name="vendor_bill_id" invisible="1" />
+            </xpath>
+            <xpath expr="//notebook" position="inside">
+                <page string="Warehouse" invisible="not (order_id)">
+                    <group string="Order">
+                        <field name="order_name" />
+                        <field name="shipping_method" />
+                    </group>
+                    <group string="Tracking" invisible="not (tracking_info)">
+                        <field name="tracking_info" widget="text" nolabel="1" />
+                    </group>
+                </page>
+            </xpath>
+        </field>
+    </record>
+</odoo>

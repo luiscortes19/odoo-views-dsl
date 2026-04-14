@@ -27,11 +27,11 @@ class _SettingsRegistry:
         Example::
 
             @settings.page(
-                id='res_config_settings_avexpress',
-                module='avexpress_integration',
-                string='AV Express',
+                id='res_config_settings_my_module',
+                module='my_module',
+                string='My Module',
             )
-            def avexpress_settings(s):
+            def my_settings(s):
                 with s.block('API Connection'):
                     with s.setting('API Endpoint', help='Your API config.'):
                         s.field('api_url', readonly=True)
